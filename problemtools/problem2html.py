@@ -34,6 +34,7 @@ def convert(problem, options=None):
     # Set up template if necessary
     with template.Template(problem, language=options.language, title=options.title) as templ:
         texfile = open(templ.get_file_name(), 'r')
+        format = templ.get_format()
 
         origcwd = os.getcwd()
 

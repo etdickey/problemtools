@@ -25,17 +25,19 @@ class Template:
             problemdir = problemdir[:-1]
         stmtdir = os.path.join(problemdir, 'problem_statement')
 
+        #lang options include "en", "fr", etc
         langs = []
-        if glob.glob(os.path.join(stmtdir, 'problem.tex')):
+        # if glob.glob(os.path.join(stmtdir, 'problem.[a-z][a-z].(tex|md)')): # TODO
+        if [glob.glob(os.path.join(stmtdir, 'problem.' + f)) for f in ['tex', 'md']]:
             langs.append('')
-        for f in glob.glob(os.path.join(stmtdir, 'problem.[a-z][a-z].tex')):
-            langs.append(re.search("problem.([a-z][a-z]).tex$", f).group(1))
+        for format in ['tex', 'md']:
+            for f in glob.glob(os.path.join(stmtdir, 'problem.[a-z][a-z].' + format)):
+                langs.append(re.search("problem.([a-z][a-z])." + format + "$", f).group(1))
         if len(langs) == 0:
             raise Exception('No problem statements available')
 
         dotlang = ''
-        # If language unspec., use first available one (will be
-        # problem.tex if exists)
+        # If language unspec., use first available one (will be problem.(tex|md) if exists)
         if language == '':
             language = langs[0]
         if language != '':
@@ -45,25 +47,45 @@ class Template:
                 raise Exception('No problem statement for language "%s" available' % language)
             dotlang = '.' + language
 
+        #format options include "md", "tex"
+        dotformat = ''
+        if glob.glob(os.path.join(stmtdir, 'problem' + dotlang + '.tex')):
+            dotformat = '.tex'
+        elif glob.glob(os.path.join(stmtdir, 'problem' + dotlang + '.md')):
+            dotformat = '.md'
+        else:
+            raise Exception('Invalid format code (!tex & !md)')
+
         # Used in the template.tex variable substitution.
         self.language = dotlang
-        problemtex = os.path.join(stmtdir, 'problem' + dotlang + '.tex')
+        self.format = dotformat
+        problemtex = os.path.join(stmtdir, 'problem' + dotlang + dotformat)
+        print("PROBLEMTEX: " + problemtex)
 
         if not os.path.isfile(problemtex):
             raise Exception('Unable to find problem statement, was looking for "%s"' % problemtex)
-        
-        self.templatefile = 'template.tex'
+
+        # TODO: something to do here?
+        self.templatefile = 'template%s' % dotformat
         self.clsfile = 'problemset.cls'
         timelim = 1  # Legacy for compatibility with v0.1
         version = detect_version(problemdir, problemtex)
         if version != '':
             print('Note: problem is in an old version (%s) of problem format, you should consider updating it' % version)
-            self.templatefile = 'template_%s.tex' % version
+            self.templatefile = 'template_%s%s' % (version, dotformat)
             self.clsfile = 'problemset_%s.cls' % version
 
-        templatepaths = [os.path.join(os.path.dirname(__file__), 'templates/latex'),
-                         os.path.join(os.path.dirname(__file__), '../templates/latex'),
-                         '/usr/lib/problemtools/templates/latex']
+        #TODO:: when figure out markdown template (vs latex template for pandoc?)
+        if dotformat == '.tex':
+            templatepaths = [os.path.join(os.path.dirname(__file__), 'templates/latex'),
+                             os.path.join(os.path.dirname(__file__), '../templates/latex'),
+                             '/usr/lib/problemtools/templates/latex']
+        elif dotformat == '.md':
+            # TODO: modify to [--data-dir]/templates/default.latex (https://pandoc.org/MANUAL.html#templates)
+            templatepaths = [os.path.join(os.path.dirname(__file__), 'templates/markdown'),
+                             os.path.join(os.path.dirname(__file__), '../templates/markdown'),
+                             '/usr/lib/problemtools/templates/markdown']
+
         self.templatepath = next((p for p in templatepaths
                                   if os.path.isdir(p) and os.path.isfile(os.path.join(p, self.templatefile))),
                                  None)
@@ -72,6 +94,10 @@ class Template:
 
         self.basedir = os.path.dirname(problemdir)
         self.shortname = os.path.basename(problemdir)
+        print("Problemdir: ", problemdir)
+        print("basedir: ", self.basedir)
+        print("shortname: ", self.shortname)
+        print("Dot format: ", dotformat)
         sample_dir = os.path.join(problemdir, 'data', 'sample')
         self.samples = sorted(set([os.path.splitext(os.path.basename(f))[0]
                                    for f in (glob.glob(os.path.join(sample_dir, '*.in')) +
@@ -88,16 +114,31 @@ class Template:
         if self.copy_cls:
             shutil.copyfile(os.path.join(self.templatepath, self.clsfile), self.problemset_cls)
 
-        (templfd, self.filename) = tempfile.mkstemp(suffix='.tex', dir=self.basedir)
+        (templfd, self.filename) = tempfile.mkstemp(suffix=self.format, dir=self.basedir)
         templout = os.fdopen(templfd, 'w')
         templin = open(os.path.join(self.templatepath, self.templatefile))
+
+        sampleinput = "If you are reading this something went wrong importing the sample data"
+        sampleoutput = sampleinput
+        with open(self.basedir + "/" + self.shortname + "/data/sample/" + self.samples[0] + ".in", "r") as samplefile:
+            sampleinput = ''.join(samplefile.readlines())
+        with open(self.basedir + "/" + self.shortname + "/data/sample/" + self.samples[0] + ".ans", "r") as samplefile:
+            sampleoutput = ''.join(samplefile.readlines())
+
         data = {'language': self.language,
-                'shortname': self.shortname}
+                'shortname': self.shortname,
+                'title': self.shortname,#todo:: remove
+                'timelim': 2,#todo:: remove
+                #todo:: convert lists to string
+                'inputlines': sampleinput,#todo:: verify input files exist
+                'outputlines': sampleoutput}#todo:: also handle multiple input files
         for line in templin:
             try:
                 templout.write(line % data)
             except:
                 # This is a bit ugly I guess
+                print("Self.samples: ", self.samples)
+                print("Templin: ", line)
                 for sample in self.samples:
                     data['sample'] = sample
                     templout.write(line % data)
@@ -118,3 +159,7 @@ class Template:
     def get_file_name(self):
         assert os.path.isfile(self.filename)
         return self.filename
+
+    def get_format(self):
+        assert os.path.isfile(self.filename)# TODO:: doesn't guarantee that the format matches the filename
+        return self.format
