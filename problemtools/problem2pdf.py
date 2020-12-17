@@ -11,6 +11,8 @@ import logging
 import subprocess
 from . import template
 
+DEBUG = True
+CPY_TMP = True if DEBUG else False #turn off if debug is off
 
 def convert(problem, options=None):
     if options == None:
@@ -42,12 +44,12 @@ def convert(problem, options=None):
             params.append(texfile)
         elif format == '.md':
             params = ['pandoc', texfile, '-o', os.path.splitext(texfile)[0] + '.pdf']
-            # TODO: quiet mode?
+            # TODO: options.nopdf -- what does it mean and how do we work with pandoc this way
         else:
             raise Exception('Improper format "%s"' % format)
 
-        subprocess.call(['cp', texfile, 'tmp' + os.path.splitext(texfile)[1]], stdout=output)#todo:: remove
-        print("Calling subprocess: ", params)#todo:: remove
+        if CPY_TMP: subprocess.call(['cp', texfile, 'tmp' + os.path.splitext(texfile)[1]], stdout=output)
+        if DEBUG: print("Calling subprocess: ", params)
         status = subprocess.call(params, stdout=output)
         if status == 0:
             status = subprocess.call(params, stdout=output)
