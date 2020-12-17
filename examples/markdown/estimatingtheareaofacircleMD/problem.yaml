@@ -1,0 +1,7 @@
+author: Greg Hamerly
+keywords: simple geometry
+rights_owner: Greg Hamerly
+source: Baylor Competitive Learning course
+license: cc by-sa
+validator_flags: float_relative_tolerance 0.00001
+# Original CVS repository problem number: 016
