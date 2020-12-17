@@ -10,18 +10,16 @@ experiment outcomes.
 
 ![An illustration of the random marking process.](circle.pdf){ width=30% height=10% }
 
-\newcommand{\tightlist}{}
-
 * this
 
 * is
 
-* a
+* a test of the baylor emergency alert system
 
   * superlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsu [space]perlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlongl
   [new line]istsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglistsuperlonglist
 
-## Input
+# Input
 
 Input contains up to $1\,000$ test cases, one test case per line. Each line has
 three space-separated numbers: $r\ m\ c$, where $0 < r \le 1\,000$ is a real
@@ -31,7 +29,7 @@ $0 \le c \le m$ is an integer indicating the number of marked points that fall
 in the circle. Input ends with a line containing three zeros, which should not
 be processed.
 
-## Output
+# Output
 
 For each test case, print a line containing two numbers: the true area of the
 circle and the estimate according to the experiment. Both numbers may have
